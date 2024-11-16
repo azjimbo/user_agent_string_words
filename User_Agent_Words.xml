@@ -1,0 +1,194 @@
+<form version="1.1">
+  <label>User Agent Words</label>
+  <search id="wordbase">
+    <query>
+        | tstats count from datamodel=Web groupby sourcetype Web.http_user_agent Web.uri_path host Web.src ```web.site```
+        | where sourcetype="access_combined"
+        |rename Web.* AS * , src AS clientip
+    </query>
+    <earliest>$timekeepsonticking.earliest$</earliest>
+    <latest>$timekeepsonticking.latest$</latest>
+    <sampleRatio>1</sampleRatio>
+  </search>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="timekeepsonticking">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="jwsel" searchWhenChanged="true">
+      <label>Search For</label>
+      <default>*</default>
+    </input>
+    <input type="radio" token="heavyhitters" searchWhenChanged="true" id="radiosample">
+      <label>Exclude Heavy Hitters</label>
+      <choice value="like to from if our would about the version khtml os iphone ApplewebKit Chrome Mobile Mac Gecko Mozilla Safari compatible windows firefox cpu NT Macintosh Build win android com htm Tinux bingbot unknown intel www bing http ipad">Yes</choice>
+      <choice value="">No</choice>
+      <initialValue>like to from if our would about the version khtml os iphone ApplewebKit Chrome Mobile Mac Gecko Mozilla Safari compatible windows firefox cpu NT Macintosh Build win android com htm Tinux bingbot unknown intel www bing http ipad</initialValue>
+    </input>
+    <input type="text" token="nopers" searchWhenChanged="true">
+      <label>Exclude Term</label>
+      <default>$heavyhitters$</default>
+      <prefix>|search NOT justwords IN(</prefix>
+      <suffix>)</suffix>
+      <initialValue>$heavyhitters$</initialValue>
+    </input>
+    <input type="checkbox" token="reset_token" searchWhenChanged="true" id="reset">
+      <label>Token Reset</label>
+      <choice value="*">Reset</choice>
+      <change>
+        <set token="jwsel">*</set>
+        <unset token="reset_token"></unset>
+        <unset token="form.jwsel"></unset>
+        <unset token="form.reset_token"></unset>
+      </change>
+      <initialValue>none</initialValue>
+      <delimiter> </delimiter>
+    </input>
+  </fieldset>
+  <row depends="$notshow$">
+    <panel>
+      <html>
+        <style>
+        #radiosample
+        div[data-test="radio-list"]{
+        display: inline;
+        }
+        #radiosample
+        div[data-test="option"] {
+        display: inline;
+        margin-top: Opx;
+        margin-right: 10px;
+        margin-bottom: Opx;
+        margin-left: 9px
+        }
+        #radiosample {
+        width:10%;
+        }
+        </style>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <html>
+        <details>
+      <summary> Dashboard Overview and Instructions 
+      </summary>
+      <ul>This presents unique words used in user agent strings.  (>2 characters long).</ul>
+      <ul>You can search for individual words using the search above.  You can filter by clicking on a word below.</ul>
+      <ul>In the resulting drilldown you will find all the source IPs that had presented that user agent string, clicking one of those will present another drilldown that shows all the different user agent strings presented by that particular IP address.</ul>
+      <ul>There are a number of words that are pre-excluded above.  These are ones that I just find annoying and prolific.  Also the entire "Expance, a Palo Alto ... " user agent string is hard coded out.  Edit the underlying query if you want to include that back in.  </ul>
+      <ul>The exclude list:  <font color="navy">excluding: $nopers$</font></ul>
+        </details>
+    </html>
+      <table>
+      <title>Unique Words in User Agent Strings from Web Data Model. </title>
+
+        <search base="runit">
+          <query>
+        |streamstats count
+        |eval sets = count % 5
+        |eval justwords_{sets} = justwords
+        |stats values(justwords_*) as justwords_*
+        |rename justwords_O as justwords, justwords_1 as "justwords ", justwords_2 as "justwords  ", justwords_3 as "justwords   ", justwords_4 as "Justwords    "
+        </query>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="jwsel">$click.value2$</set>
+          <unset token="w2ym"></unset>
+          <unset token="curious_ip"></unset>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Rare Words in UserAgent Strings</title>
+      <table>
+        <search base="wordbase" id="runit">
+          <query>
+        | eval justwords=http_user_agent
+  
+            |where NOT match(http_user_agent,"Expanse") ```this is the paloalto UA string - very long and way too many words. this is a perm exclude jpc 13 Nov 24```
+        | rex mode=sed field=justwords "s/[\W|\d|_]+/ /g"
+        | makemv justwords delim=" "
+        | mvexpand justwords
+        | search http_user_agent=*** 
+        | search http_user_agent=*$jwsel$* $nopers$
+        | stats dc(http_user_agent) AS Unq_userAgents dc(uri_path) as uri dc(host) as hosts dc(clientip) as clientips count by justwords
+        | eval jwlen=len(justwords)
+        | where jwlen&gt;2
+      </query>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="w2ym">$click.value$</set>
+          <unset token="Ccurious_ip"></unset>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$w2ym$">
+    <panel>
+      <title>drilldown for $w2ym$</title>
+      <table>
+        <search base="wordbase">
+          <query>
+        | search http_user_agent=*$w2ym$*
+        | lookup dnslookup clientip 
+        | table _time clientip clienthost host site uri_path http_method http_user_agent http_user_agent_length 1p_owner domain
+        </query>
+        </search>
+        <option name="count">25</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="curious_ip">$row.clientip$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$curious_ip$">
+    <panel>
+      <title>drilldown by clientip ($curious_ip$)</title>
+      <table>
+        <search base="wordbase">
+          <query>
+        | search clientip=$curious_ip$
+        | table _time clientip ip_owner domain host site uri_path http_method http_user_agent http_user_agent_length ip_owner domain</query>
+        </search>
+        <option name="count">25</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="curious_ip">$row.clientip$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+</form>
