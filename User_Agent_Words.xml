@@ -93,7 +93,7 @@
         |eval sets = count % 5
         |eval justwords_{sets} = justwords
         |stats values(justwords_*) as justwords_*
-        |rename justwords_0 as justwords, justwords_1 as "justwords ", justwords_2 as "justwords  ", justwords_3 as "justwords   ", justwords_4 as "Justwords    "
+        |rename justwords_0 as justwords, justwords_1 as "justwords ", justwords_2 as "justwords  ", justwords_3 as "justwords   ", justwords_4 as "justwords    "
         </query>
         </search>
         <option name="count">20</option>
