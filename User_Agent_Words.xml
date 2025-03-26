@@ -2,14 +2,18 @@
   <label>User Agent Words</label>
   <search id="wordbase">
     <query>
-        | tstats count from datamodel=Web groupby sourcetype Web.http_user_agent Web.uri_path host Web.src ```web.site```
-        | where sourcetype="access_combined"
+        | tstats count max(_time) as latestTime from datamodel=Web  where sourcetype="access_combined" $status_tok_box$ groupby sourcetype Web.http_user_agent Web.uri_path host Web.src ```web.site```
         |rename Web.* AS * , src AS clientip
     </query>
     <earliest>$timekeepsonticking.earliest$</earliest>
     <latest>$timekeepsonticking.latest$</latest>
     <sampleRatio>1</sampleRatio>
   </search>
+  <init>
+<!--    <set token="status_200"></set>
+    <set token="status_400s"></set> -->
+    <set token="status_tok_box"></set>
+  </init>
   <fieldset submitButton="false" autoRun="true">
     <input type="time" token="timekeepsonticking">
       <label></label>
@@ -35,18 +39,31 @@
       <suffix>)</suffix>
       <initialValue>$heavyhitters$</initialValue>
     </input>
+
+    <input type="checkbox" token="status_tok_box" searchWhenChanged="true" >
+      <label>Status</label>
+      <choice value="200">200</choice>
+      <choice value="4*">400s</choice>
+      <delimiter> ,</delimiter>
+      <prefix>AND  Web.status IN(</prefix>
+      <suffix>)</suffix>
+    </input>
+
     <input type="checkbox" token="reset_token" searchWhenChanged="true" id="reset">
       <label>Token Reset</label>
       <choice value="*">Reset</choice>
       <change>
         <set token="jwsel">*</set>
+        <set token="status_tok_box"></set>
         <unset token="reset_token"></unset>
         <unset token="form.jwsel"></unset>
+        <unset token="form.status_tok_box"></unset>
         <unset token="form.reset_token"></unset>
       </change>
       <initialValue>none</initialValue>
       <delimiter> </delimiter>
     </input>
+
   </fieldset>
   <row depends="$notshow$">
     <panel>
@@ -77,23 +94,23 @@
         <details>
       <summary> Dashboard Overview and Instructions 
       </summary>
-      <ul>This presents unique words used in user agent strings.  (>2 characters long).</ul>
+      <ul>This presents unique words used in user agent strings.  (&gt;2 characters long).</ul>
       <ul>You can search for individual words using the search above.  You can filter by clicking on a word below.</ul>
       <ul>In the resulting drilldown you will find all the source IPs that had presented that user agent string, clicking one of those will present another drilldown that shows all the different user agent strings presented by that particular IP address.</ul>
       <ul>There are a number of words that are pre-excluded above.  These are ones that I just find annoying and prolific.  Also the entire "Expance, a Palo Alto ... " user agent string is hard coded out.  Edit the underlying query if you want to include that back in.  </ul>
-      <ul>The exclude list:  <font color="navy">excluding: $nopers$</font></ul>
+      <ul>The exclude list:  <font color="navy">excluding: $nopers$</font>
+          </ul>
         </details>
     </html>
       <table>
-      <title>Unique Words in User Agent Strings from Web Data Model. </title>
-
+        <title>Unique Words in User Agent Strings from Web Data Model.</title>
         <search base="runit">
           <query>
         |streamstats count
         |eval sets = count % 5
         |eval justwords_{sets} = justwords
         |stats values(justwords_*) as justwords_*
-        |rename justwords_0 as justwords, justwords_1 as "justwords ", justwords_2 as "justwords  ", justwords_3 as "justwords   ", justwords_4 as "justwords    "
+        |rename justwords_0 as "justwords", justwords_1 as "justwords ", justwords_2 as "justwords  ", justwords_3 as "justwords   ", justwords_4 as "justwords    "
         </query>
         </search>
         <option name="count">20</option>
@@ -176,7 +193,9 @@
         <search base="wordbase">
           <query>
         | search clientip=$curious_ip$
-        | table _time clientip ip_owner domain host site uri_path http_method http_user_agent http_user_agent_length ip_owner domain</query>
+        | table latestTime clientip ip_owner domain host site uri_path http_method http_user_agent http_user_agent_length ip_owner domain
+        | convert ctime(latestTime)        
+        </query>
         </search>
         <option name="count">25</option>
         <option name="dataOverlayMode">none</option>
