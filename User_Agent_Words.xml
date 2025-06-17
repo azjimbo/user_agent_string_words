@@ -1,4 +1,4 @@
-<form version="1.1">
+<form version="1.2">
   <label>User Agent Words</label>
   <search id="wordbase">
     <query>
@@ -10,7 +10,7 @@
     <sampleRatio>1</sampleRatio>
   </search>
   <init>
-<!--    <set token="status_200"></set>
+    <!--    <set token="status_200"></set>
     <set token="status_400s"></set> -->
     <set token="status_tok_box"></set>
   </init>
@@ -39,8 +39,7 @@
       <suffix>)</suffix>
       <initialValue>$heavyhitters$</initialValue>
     </input>
-
-    <input type="checkbox" token="status_tok_box" searchWhenChanged="true" >
+    <input type="checkbox" token="status_tok_box" searchWhenChanged="true">
       <label>Status</label>
       <choice value="200">200</choice>
       <choice value="4*">400s</choice>
@@ -48,6 +47,23 @@
       <prefix>AND  Web.status IN(</prefix>
       <suffix>)</suffix>
     </input>
+    <input type="checkbox" token="reset_dtoken" searchWhenChanged="true">
+      <label>Drilldown Reset</label>
+      <choice value="*">Reset</choice>
+      <change>
+        <set token="jwsel">$form.jwsel$</set>
+        <set token="status_tok_box"></set>
+        <unset token="w2ym"></unset>
+        <unset token="curious_ip"></unset>
+        <unset token="form.status_tok_box"></unset>
+        <unset token="reset_dtoken"></unset>
+        <unset token="form.reset_dtoken"></unset>
+      </change>
+      <initialValue>none</initialValue>
+      <delimiter> </delimiter>
+    </input>
+
+
 
     <input type="checkbox" token="reset_token" searchWhenChanged="true" id="reset">
       <label>Token Reset</label>
@@ -63,7 +79,6 @@
       <initialValue>none</initialValue>
       <delimiter> </delimiter>
     </input>
-
   </fieldset>
   <row depends="$notshow$">
     <panel>
@@ -157,7 +172,7 @@
         <option name="wrap">true</option>
         <drilldown>
           <set token="w2ym">$click.value$</set>
-          <unset token="Ccurious_ip"></unset>
+          <unset token="curious_ip"></unset>
         </drilldown>
       </table>
     </panel>
@@ -208,6 +223,31 @@
           <set token="curious_ip">$row.clientip$</set>
         </drilldown>
       </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <viz type="wordcloud_app.wordcloud">
+        <search base="runit">
+          <query>
+        | eval color=case(count&lt;3,"purple",count&lt;10,"blue",count&lt;15,"green",count&lt;25,"#2596be",count&lt;50,"orange",count&lt;75,"cyan",count&lt;100,"brown",count&lt;200,"Navy",count&lt;250,"#2596be",count&gt;250,"gold")
+| table justwords count color
+</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="wordcloud_app.wordcloud.alignmentMode">horizontal</option>
+        <option name="wordcloud_app.wordcloud.backgroundColor">#fff</option>
+        <option name="wordcloud_app.wordcloud.colorBy">field</option>
+        <option name="wordcloud_app.wordcloud.colorMode">categorical</option>
+        <option name="wordcloud_app.wordcloud.maxColor">#3fc77a</option>
+        <option name="wordcloud_app.wordcloud.minColor">#d94e17</option>
+        <option name="wordcloud_app.wordcloud.numOfBins">8</option>
+        <option name="wordcloud_app.wordcloud.splunkTastic">false</option>
+        <option name="wordcloud_app.wordcloud.useColors">true</option>
+      </viz>
     </panel>
   </row>
 </form>
